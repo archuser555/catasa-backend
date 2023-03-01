@@ -1,32 +1,30 @@
-// server.js
-
-const express = require('express');
-const http = require('http');
 const WebSocket = require('ws');
 
-const PORT = process.env.PORT || 5000;
+const server = new WebSocket.Server({ port: 10000 });
 
-const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+server.on('connection', (socket) => {
+  console.log('Client connected.');
 
-wss.on('connection', (ws) => {
-  console.log('A client connected');
+  socket.on('message', (message) => {
+    console.log(`Received message: ${message}`);
 
-  ws.on('message', (data) => {
-    console.log(`Received message: ${data}`);
-    wss.clients.forEach((client) => {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(data);
+    // broadcast message to all connected clients except the sender
+    server.clients.forEach((client) => {
+      if (client !== socket && client.readyState === WebSocket.OPEN) {
+        client.send(message);
       }
     });
   });
 
-  ws.on('close', () => {
-    console.log('A client disconnected');
+  socket.on('error', (error) => {
+    console.error(`Socket error: ${error}`);
+  });
+
+  socket.on('close', () => {
+    console.log('Client disconnected.');
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+server.on('error', (error) => {
+  console.error(`Server error: ${error}`);
 });
